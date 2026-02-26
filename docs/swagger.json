@@ -253,6 +253,49 @@
                 }
             }
         },
+        "/v1/payments/wa-flow-endpoint": {
+            "post": {
+                "description": "Handles data_exchange action from WhatsApp Flow, forwards order form data to SUMMARY_ORDER screen",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp Flow"
+                ],
+                "summary": "WhatsApp Flow data exchange endpoint",
+                "parameters": [
+                    {
+                        "description": "WhatsApp Flow request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_payment.WAFlowRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_payment.WAFlowResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/xample": {
             "get": {
                 "description": "Returns example data for testing purposes",
@@ -328,9 +371,7 @@
         "go-boilerplate_internal_service_payment.CreatePaymentRequest": {
             "type": "object",
             "required": [
-                "customer",
-                "items",
-                "order_id"
+                "items"
             ],
             "properties": {
                 "customer": {
@@ -374,10 +415,6 @@
         },
         "go-boilerplate_internal_service_payment.CustomerInfo": {
             "type": "object",
-            "required": [
-                "name",
-                "phone"
-            ],
             "properties": {
                 "email": {
                     "type": "string"
@@ -455,6 +492,63 @@
                     "type": "string"
                 },
                 "transaction_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler_payment.WAFlowOrderData": {
+            "type": "object",
+            "properties": {
+                "alamat_lengkap": {
+                    "type": "string"
+                },
+                "items_text": {
+                    "type": "string"
+                },
+                "kode_pos": {
+                    "type": "string"
+                },
+                "kota_kecamatan": {
+                    "type": "string"
+                },
+                "nama_penerima": {
+                    "type": "string"
+                },
+                "nomor_handphone": {
+                    "type": "string"
+                },
+                "provinsi": {
+                    "type": "string"
+                },
+                "total_barang": {
+                    "type": "string"
+                },
+                "total_biaya": {
+                    "type": "string"
+                },
+                "total_pengiriman": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler_payment.WAFlowRequest": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_handler_payment.WAFlowOrderData"
+                }
+            }
+        },
+        "internal_handler_payment.WAFlowResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/internal_handler_payment.WAFlowOrderData"
+                },
+                "screen": {
                     "type": "string"
                 }
             }

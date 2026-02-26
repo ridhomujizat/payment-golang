@@ -11,6 +11,7 @@ func (h *Handler) NewRoutes(e *gin.RouterGroup) {
 	payments.GET("/status/:order_id", h.CheckStatus)
 	payments.POST("/process", h.HandlePaymentResult)
 	payments.POST("/callback", h.MidtransCallback)
+	payments.POST("/wa-flow-endpoint", h.WAFlowEndpoint)
 }
 
 func (h *Handler) NewPageRoutes(e *gin.Engine) {

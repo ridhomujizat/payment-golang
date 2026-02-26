@@ -135,6 +135,45 @@ func (h *Handler) MidtransCallback(c *gin.Context) {
 	c.JSON(result.Code, gin.H{"status": "ok"})
 }
 
+// WAFlowEndpoint godoc
+// @Summary      WhatsApp Flow data exchange endpoint
+// @Description  Handles data_exchange action from WhatsApp Flow, forwards order form data to SUMMARY_ORDER screen
+// @Tags         WhatsApp Flow
+// @Accept       json
+// @Produce      json
+// @Param        request  body      WAFlowRequest  true  "WhatsApp Flow request"
+// @Success      200      {object}  WAFlowResponse
+// @Failure      400      {object}  map[string]string
+// @Router       /v1/payments/wa-flow-endpoint [post]
+func (h *Handler) WAFlowEndpoint(c *gin.Context) {
+	var req WAFlowRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		return
+	}
+
+	if req.Action == "data_exchange" {
+		c.JSON(http.StatusOK, WAFlowResponse{
+			Screen: "SUMMARY_ORDER",
+			Data: WAFlowOrderData{
+				NamaPenerima:   req.Data.NamaPenerima,
+				NomorHandphone: req.Data.NomorHandphone,
+				AlamatLengkap:  req.Data.AlamatLengkap,
+				Provinsi:       req.Data.Provinsi,
+				KotaKecamatan:  req.Data.KotaKecamatan,
+				KodePos:        req.Data.KodePos,
+				ItemsText:      req.Data.ItemsText,
+				TotalBarang:    req.Data.TotalBarang,
+				TotalPengiriman: req.Data.TotalPengiriman,
+				TotalBiaya:     req.Data.TotalBiaya,
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported action"})
+}
+
 // PaymentPage handles GET /pay/:token — serves the payment HTML page
 func (h *Handler) PaymentPage(c *gin.Context) {
 	token := c.Param("token")

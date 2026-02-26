@@ -41,9 +41,7 @@ definitions:
       order_id:
         type: string
     required:
-    - customer
     - items
-    - order_id
     type: object
   go-boilerplate_internal_service_payment.CreatePaymentResponse:
     properties:
@@ -66,9 +64,6 @@ definitions:
         type: string
       phone:
         type: string
-    required:
-    - name
-    - phone
     type: object
   go-boilerplate_internal_service_payment.ItemDetail:
     properties:
@@ -114,6 +109,43 @@ definitions:
       status:
         type: string
       transaction_id:
+        type: string
+    type: object
+  internal_handler_payment.WAFlowOrderData:
+    properties:
+      alamat_lengkap:
+        type: string
+      items_text:
+        type: string
+      kode_pos:
+        type: string
+      kota_kecamatan:
+        type: string
+      nama_penerima:
+        type: string
+      nomor_handphone:
+        type: string
+      provinsi:
+        type: string
+      total_barang:
+        type: string
+      total_biaya:
+        type: string
+      total_pengiriman:
+        type: string
+    type: object
+  internal_handler_payment.WAFlowRequest:
+    properties:
+      action:
+        type: string
+      data:
+        $ref: '#/definitions/internal_handler_payment.WAFlowOrderData'
+    type: object
+  internal_handler_payment.WAFlowResponse:
+    properties:
+      data:
+        $ref: '#/definitions/internal_handler_payment.WAFlowOrderData'
+      screen:
         type: string
     type: object
 info:
@@ -280,6 +312,35 @@ paths:
       summary: Check payment status
       tags:
       - Payments
+  /v1/payments/wa-flow-endpoint:
+    post:
+      consumes:
+      - application/json
+      description: Handles data_exchange action from WhatsApp Flow, forwards order
+        form data to SUMMARY_ORDER screen
+      parameters:
+      - description: WhatsApp Flow request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler_payment.WAFlowRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler_payment.WAFlowResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: WhatsApp Flow data exchange endpoint
+      tags:
+      - WhatsApp Flow
   /xample:
     get:
       description: Returns example data for testing purposes
