@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  go-boilerplate-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-boilerplate-api
+    ports:
+      - "8080:8080"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      - TZ=UTC
+
+      # Application Configuration
+      - APP_ENV=${APP_ENV:-production}
+      - APP_PORT=${APP_PORT:-8080}
+      - GIN_MODE=release
+
+      # Database Configuration
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-boilerplate_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASS=${DB_PASS:-postgres}
+
+      # Redis Configuration
+      - REDIS_HOST=${REDIS_HOST:-localhost}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_USER=${REDIS_USER:-default}
+      - REDIS_PASS=${REDIS_PASS:-}
+      - REDIS_POOL_SIZE=${REDIS_POOL_SIZE:-10}
+
+      # RabbitMQ Configuration
+      - RABBIT_HOST=${RABBIT_HOST:-localhost}
+      - RABBIT_PORT=${RABBIT_PORT:-5672}
+      - RABBIT_USER=${RABBIT_USER:-guest}
+      - RABBIT_PASS=${RABBIT_PASS:-guest}
+
+      # AI Service Configuration (optional)
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash-exp}
+
+      # AWS S3 Configuration (optional)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION=${AWS_REGION:-}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME:-}
+
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
