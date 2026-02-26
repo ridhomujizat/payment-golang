@@ -27,6 +27,13 @@ func NewHandler(ctx context.Context, rabbitmq *rabbitmq.ConnectionManager, xampl
 	}
 }
 
+// GetAllUploadedDucment godoc
+// @Summary      Get example data
+// @Description  Returns example data for testing purposes
+// @Tags         Example
+// @Produce      json
+// @Success      200  {object}  types.ResponseAPI{data=string}
+// @Router       /xample [get]
 func (h *Handler) GetAllUploadedDucment(c *gin.Context) {
 	send := c.MustGet("send").(func(r *types.Response))
 

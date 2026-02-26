@@ -2,20 +2,30 @@ package serverApp
 
 import (
 	"context"
+	"net/url"
+	"strings"
 
 	ai "go-boilerplate/internal/pkg/ai-connector"
 	database "go-boilerplate/internal/pkg/db"
 	"go-boilerplate/internal/pkg/middleware"
+	midtransPkg "go-boilerplate/internal/pkg/midtrans"
 	"go-boilerplate/internal/pkg/rabbitmq"
 	"go-boilerplate/internal/pkg/redis"
 	s3aws "go-boilerplate/internal/pkg/storage/s3"
 	"go-boilerplate/internal/repository"
+	paymentRepo "go-boilerplate/internal/repository/payment"
 	"sync"
 
 	xampleHandler "go-boilerplate/internal/handler/example"
+	paymentHandler "go-boilerplate/internal/handler/payment"
 	xampleService "go-boilerplate/internal/service/example"
+	paymentService "go-boilerplate/internal/service/payment"
+
+	"go-boilerplate/docs"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Setup initializes the HTTP server with middleware and routes
@@ -29,8 +39,26 @@ func Setup(
 	publisher *rabbitmq.Publisher,
 	s3 *s3aws.Is3,
 	ai *ai.AiClient,
+	mt *midtransPkg.MidtransClient,
+	baseURL string,
 ) {
 	InitMiddleware(engine, publisher)
+
+	// Set swagger host dynamically from APP_BASE_URL
+	if parsed, err := url.Parse(baseURL); err == nil {
+		docs.SwaggerInfo.Host = parsed.Host
+		if strings.HasPrefix(baseURL, "https") {
+			docs.SwaggerInfo.Schemes = []string{"https"}
+		} else {
+			docs.SwaggerInfo.Schemes = []string{"http"}
+		}
+	}
+
+	// Swagger UI
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Load HTML templates for payment pages
+	engine.LoadHTMLGlob("frontend/templates/*")
 
 	// Health check endpoint
 	engine.GET("/health", func(c *gin.Context) {
@@ -66,7 +94,7 @@ func Setup(
 	})
 
 	e := engine.Group(BasePath())
-	InitRoutes(e, ctx, wg, db, redisClient, rb, publisher, s3, ai)
+	InitRoutes(e, engine, ctx, wg, db, redisClient, rb, publisher, s3, ai, mt, baseURL)
 }
 
 // BasePath returns the base API path
@@ -83,6 +111,7 @@ func InitMiddleware(e *gin.Engine, publisher *rabbitmq.Publisher) {
 
 func InitRoutes(
 	e *gin.RouterGroup,
+	engine *gin.Engine,
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	db *database.Database,
@@ -91,15 +120,23 @@ func InitRoutes(
 	publisher *rabbitmq.Publisher,
 	s3 *s3aws.Is3,
 	ai *ai.AiClient,
+	mt *midtransPkg.MidtransClient,
+	baseURL string,
 ) {
 
 	// setup repo
-	rp := repository.IRepository{}
-	// setup service
+	rp := repository.IRepository{
+		Payment: paymentRepo.NewRepo(db),
+	}
+
+	// === Example ===
 	XampleService := xampleService.NewService(ctx, redisClient, rb, publisher, rp)
-	// setup handler
 	XampleHandler := xampleHandler.NewHandler(ctx, rb, XampleService)
-	// init route
 	XampleHandler.NewRoutes(e)
 
+	// === Payment ===
+	PaymentService := paymentService.NewService(ctx, rp, mt, baseURL)
+	PaymentHandler := paymentHandler.NewHandler(ctx, PaymentService, mt, baseURL)
+	PaymentHandler.NewRoutes(e)
+	PaymentHandler.NewPageRoutes(engine)
 }

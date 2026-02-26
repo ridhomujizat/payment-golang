@@ -1,0 +1,301 @@
+basePath: /api
+definitions:
+  go-boilerplate_internal_common_type.ResponseAPI:
+    properties:
+      data: {}
+      debug:
+        $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPIDebug'
+      message:
+        type: string
+    type: object
+  go-boilerplate_internal_common_type.ResponseAPIDebug:
+    properties:
+      endTime:
+        description: ISO8601 format for consistency with StartTime
+        type: string
+      error:
+        type: string
+      requestId:
+        type: string
+      runtimeMs:
+        description: Runtime in milliseconds for better precision
+        type: integer
+      startTime:
+        description: ISO8601 format, e.g., "2025-01-09T15:04:05Z07:00"
+        type: string
+      version:
+        type: string
+    type: object
+  go-boilerplate_internal_service_payment.CreatePaymentRequest:
+    properties:
+      customer:
+        $ref: '#/definitions/go-boilerplate_internal_service_payment.CustomerInfo'
+      items:
+        items:
+          $ref: '#/definitions/go-boilerplate_internal_service_payment.ItemDetail'
+        minItems: 1
+        type: array
+      metadata:
+        additionalProperties: {}
+        type: object
+      order_id:
+        type: string
+    required:
+    - customer
+    - items
+    - order_id
+    type: object
+  go-boilerplate_internal_service_payment.CreatePaymentResponse:
+    properties:
+      amount:
+        type: integer
+      order_id:
+        type: string
+      payment_url:
+        type: string
+      snap_token:
+        type: string
+      snap_url:
+        type: string
+    type: object
+  go-boilerplate_internal_service_payment.CustomerInfo:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+    required:
+    - name
+    - phone
+    type: object
+  go-boilerplate_internal_service_payment.ItemDetail:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      price:
+        type: integer
+      qty:
+        type: integer
+    required:
+    - id
+    - name
+    - price
+    - qty
+    type: object
+  go-boilerplate_internal_service_payment.PaymentResultRequest:
+    properties:
+      gross_amount:
+        type: string
+      order_id:
+        type: string
+      payment_type:
+        type: string
+      signature_key:
+        type: string
+      status_code:
+        type: string
+      transaction_id:
+        type: string
+      transaction_status:
+        type: string
+    type: object
+  go-boilerplate_internal_service_payment.PaymentStatusResponse:
+    properties:
+      amount:
+        type: integer
+      order_id:
+        type: string
+      payment_type:
+        type: string
+      status:
+        type: string
+      transaction_id:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: A production-ready Golang boilerplate API with common features
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Go Boilerplate API
+  version: "1.0"
+paths:
+  /v1/payments/callback:
+    post:
+      consumes:
+      - application/json
+      description: Receives HTTP POST notification from Midtrans when transaction
+        status changes. This URL must be registered in Midtrans Dashboard > Settings
+        > Payment Notification URL.
+      parameters:
+      - description: Midtrans notification payload
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Midtrans payment notification webhook
+      tags:
+      - Payments
+  /v1/payments/create:
+    post:
+      consumes:
+      - application/json
+      description: Receives order data from WhatsApp Bot, generates a Midtrans Snap
+        transaction, saves to DB, and returns a payment URL
+      parameters:
+      - description: Payment creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-boilerplate_internal_service_payment.CreatePaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+            - properties:
+                data:
+                  $ref: '#/definitions/go-boilerplate_internal_service_payment.CreatePaymentResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+      summary: Create a new payment
+      tags:
+      - Payments
+  /v1/payments/process:
+    post:
+      consumes:
+      - application/json
+      description: Receives snap.js callback result from frontend, verifies with Midtrans
+        API, and updates transaction status
+      parameters:
+      - description: Payment result from snap.js
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-boilerplate_internal_service_payment.PaymentResultRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+            - properties:
+                data:
+                  $ref: '#/definitions/go-boilerplate_internal_service_payment.PaymentStatusResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+      summary: Process payment result from frontend
+      tags:
+      - Payments
+  /v1/payments/status/{order_id}:
+    get:
+      consumes:
+      - application/json
+      description: Checks real-time payment status from Midtrans API with database
+        fallback
+      parameters:
+      - description: Order ID
+        in: path
+        name: order_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+            - properties:
+                data:
+                  $ref: '#/definitions/go-boilerplate_internal_service_payment.PaymentStatusResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+      summary: Check payment status
+      tags:
+      - Payments
+  /xample:
+    get:
+      description: Returns example data for testing purposes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/go-boilerplate_internal_common_type.ResponseAPI'
+            - properties:
+                data:
+                  type: string
+              type: object
+      summary: Get example data
+      tags:
+      - Example
+swagger: "2.0"

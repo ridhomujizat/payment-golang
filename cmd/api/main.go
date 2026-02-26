@@ -7,10 +7,11 @@ import (
 	"os"
 	"os/signal"
 	config "go-boilerplate/configs"
-	"go-boilerplate/internal/pkg/ai-connector"
+	ai "go-boilerplate/internal/pkg/ai-connector"
 	database "go-boilerplate/internal/pkg/db"
 	"go-boilerplate/internal/pkg/helper"
 	"go-boilerplate/internal/pkg/logger"
+	midtransPkg "go-boilerplate/internal/pkg/midtrans"
 	"go-boilerplate/internal/pkg/rabbitmq"
 	"go-boilerplate/internal/pkg/redis"
 	"go-boilerplate/internal/pkg/validation"
@@ -32,7 +33,6 @@ import (
 // @license.name    Apache 2.0
 // @license.url     http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host            localhost:8080
 // @BasePath        /api
 func main() {
 	logger.Setup()
@@ -73,6 +73,9 @@ func main() {
 	// Setup AI Client (optional)
 	aiClient := setupAI(ctx)
 
+	// Setup Midtrans Client
+	mtClient := setupMidtrans(env)
+
 	// Setup Server
 	setupServer(&config.SetupServerDto{
 		Rds:    redisClient,
@@ -83,6 +86,7 @@ func main() {
 		Wg:     &wg,
 		Rb:     rabbit,
 		Ai:     aiClient,
+		Mt:     mtClient,
 	})
 }
 
@@ -133,6 +137,14 @@ func setupAI(ctx context.Context) *ai.AiClient {
 	)
 }
 
+func setupMidtrans(env *config.Config) *midtransPkg.MidtransClient {
+	return midtransPkg.Setup(&midtransPkg.Config{
+		ServerKey:   env.MidtransServerKey,
+		ClientKey:   env.MidtransClientKey,
+		Environment: env.MidtransEnvironment,
+	})
+}
+
 func setupServer(payload *config.SetupServerDto) {
 	rds := payload.Rds
 	env := payload.Env
@@ -143,6 +155,7 @@ func setupServer(payload *config.SetupServerDto) {
 	db := payload.Db
 	s3 := payload.S3
 	ai := payload.Ai
+	mt := payload.Mt
 
 	defer func() {
 		if rds != nil {
@@ -170,7 +183,7 @@ func setupServer(payload *config.SetupServerDto) {
 		panic(err)
 	}
 
-	serverApp.Setup(e, *ctx, wg, db, rds, rb, publisher, s3, ai)
+	serverApp.Setup(e, *ctx, wg, db, rds, rb, publisher, s3, ai, mt, env.AppBaseURL)
 	if payload.Env.AppEnv != "development" {
 		serverApp.InitWorker(*ctx, rds, db, rb, publisher, s3)
 	}

@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"go-boilerplate/internal/common/models"
 	"go-boilerplate/internal/pkg/logger"
 )
 
@@ -17,7 +18,9 @@ func (db *Database) RunMigrations() error {
 	// No custom types needed
 
 	// Define models in dependency order
-	models := []interface{}{}
+	models := []interface{}{
+		&models.Transaction{},
+	}
 
 	for _, model := range models {
 		logger.Info.Printf("Migrating model: %T", model)

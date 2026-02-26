@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Pembayaran</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-lg max-w-md w-full p-6">
+        <!-- Status Icon -->
+        <div id="status-icon" class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 text-4xl">
+                <span id="icon-emoji">⏳</span>
+            </div>
+        </div>
+
+        <!-- Status Info -->
+        <div class="text-center mb-6">
+            <h1 id="status-title" class="text-2xl font-bold text-gray-600">Memuat...</h1>
+            <p id="status-message" class="text-gray-500 mt-2">Mengambil status pembayaran...</p>
+        </div>
+
+        <!-- Transaction Detail -->
+        <div class="border rounded-xl p-4 space-y-3">
+            <div class="flex justify-between">
+                <span class="text-gray-500">Order ID</span>
+                <span id="detail-order-id" class="font-medium">{{.OrderID}}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Total</span>
+                <span id="detail-amount" class="font-medium">-</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Metode Bayar</span>
+                <span id="detail-payment-type" class="font-medium">-</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Status</span>
+                <span id="detail-status" class="font-semibold">-</span>
+            </div>
+        </div>
+
+        <!-- Back Info -->
+        <div class="mt-6 text-center">
+            <p class="text-gray-500 text-sm">Anda bisa menutup halaman ini dan kembali ke WhatsApp.</p>
+        </div>
+    </div>
+
+    <script>
+        var ORDER_ID = "{{.OrderID}}";
+
+        var STATUS_CONFIG = {
+            settlement: {
+                icon: '✅', title: 'Pembayaran Berhasil',
+                message: 'Terima kasih! Pembayaran telah diterima.',
+                color: 'text-green-600', bg: 'bg-green-100'
+            },
+            capture: {
+                icon: '✅', title: 'Pembayaran Berhasil',
+                message: 'Pembayaran telah diproses.',
+                color: 'text-green-600', bg: 'bg-green-100'
+            },
+            pending: {
+                icon: '⏳', title: 'Menunggu Pembayaran',
+                message: 'Silakan selesaikan pembayaran sesuai instruksi.',
+                color: 'text-yellow-600', bg: 'bg-yellow-100'
+            },
+            deny: {
+                icon: '❌', title: 'Pembayaran Ditolak',
+                message: 'Pembayaran tidak dapat diproses.',
+                color: 'text-red-600', bg: 'bg-red-100'
+            },
+            expire: {
+                icon: '⏰', title: 'Pembayaran Kadaluarsa',
+                message: 'Waktu pembayaran telah habis.',
+                color: 'text-gray-600', bg: 'bg-gray-100'
+            },
+            cancel: {
+                icon: '🚫', title: 'Pembayaran Dibatalkan',
+                message: 'Transaksi telah dibatalkan.',
+                color: 'text-gray-600', bg: 'bg-gray-100'
+            }
+        };
+
+        function formatRupiah(amount) {
+            return 'Rp ' + parseInt(amount).toLocaleString('id-ID');
+        }
+
+        async function fetchStatus() {
+            try {
+                var res = await fetch('/api/v1/payments/status/' + ORDER_ID);
+                var json = await res.json();
+                if (json.data) {
+                    renderStatus(json.data);
+                }
+            } catch (err) {
+                console.error('Error fetching status:', err);
+            }
+        }
+
+        function renderStatus(data) {
+            var config = STATUS_CONFIG[data.status] || STATUS_CONFIG.pending;
+
+            document.getElementById('icon-emoji').textContent = config.icon;
+            var iconContainer = document.getElementById('icon-emoji').parentElement;
+            iconContainer.className = 'inline-flex items-center justify-center w-20 h-20 rounded-full ' + config.bg + ' text-4xl';
+
+            document.getElementById('status-title').textContent = config.title;
+            document.getElementById('status-title').className = 'text-2xl font-bold ' + config.color;
+            document.getElementById('status-message').textContent = config.message;
+
+            document.getElementById('detail-order-id').textContent = data.order_id;
+            document.getElementById('detail-amount').textContent = formatRupiah(data.amount);
+            document.getElementById('detail-payment-type').textContent = data.payment_type || '-';
+            document.getElementById('detail-status').textContent = data.status;
+            document.getElementById('detail-status').className = 'font-semibold ' + config.color;
+        }
+
+        // Fetch on load
+        fetchStatus();
+
+        // Auto-refresh every 5 seconds if still pending
+        setInterval(function() {
+            var statusEl = document.getElementById('detail-status');
+            if (statusEl && statusEl.textContent === 'pending') {
+                fetchStatus();
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

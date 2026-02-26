@@ -3,8 +3,9 @@ package config
 import (
 	"context"
 	"go-boilerplate/internal/common/enum"
-	"go-boilerplate/internal/pkg/ai-connector"
+	ai "go-boilerplate/internal/pkg/ai-connector"
 	database "go-boilerplate/internal/pkg/db"
+	midtransPkg "go-boilerplate/internal/pkg/midtrans"
 	"go-boilerplate/internal/pkg/rabbitmq"
 	"go-boilerplate/internal/pkg/redis"
 	s3aws "go-boilerplate/internal/pkg/storage/s3"
@@ -31,6 +32,15 @@ type Config struct {
 	DBName        string       `env:"DB_NAME" envDefault:"postgres"`
 	GeminiAPIKey  string       `env:"GEMINI_API_KEY" envDefault:""`
 	GeminiModel   string       `env:"GEMINI_MODEL" envDefault:"gemini-2.0-flash-exp"`
+
+	// Midtrans Configuration
+	MidtransServerKey  string `env:"MIDTRANS_SERVER_KEY" envDefault:""`
+	MidtransClientKey  string `env:"MIDTRANS_CLIENT_KEY" envDefault:""`
+	MidtransEnvironment string `env:"MIDTRANS_ENVIRONMENT" envDefault:"sandbox"`
+
+	// App Base URL (for payment redirect URLs)
+	AppBaseURL string `env:"APP_BASE_URL" envDefault:"http://localhost:8080"`
+
 	// AWS S3 Configuration (optional, uncomment if needed)
 	// AWSACCESSKEYID     string       `env:"AWS_ACCESS_KEY_ID" envDefault:""`
 	// AWSSECRETACCESSKEY string       `env:"AWS_SECRET_ACCESS_KEY" envDefault:""`
@@ -49,4 +59,5 @@ type SetupServerDto struct {
 	Rb     *rabbitmq.ConnectionManager
 	S3     *s3aws.Is3
 	Ai     *ai.AiClient
+	Mt     *midtransPkg.MidtransClient
 }

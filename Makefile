@@ -78,6 +78,12 @@ install-tools: ## Install development tools
 	@echo "Installing development tools..."
 	@go install github.com/cosmtrek/air@latest
 	@go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	@go install github.com/swaggo/swag/cmd/swag@latest
+
+# Swagger
+swagger: ## Generate swagger documentation
+	@echo "Generating swagger docs..."
+	@swag init -g cmd/api/main.go -o docs --parseDependency --parseInternal
 
 # lint
 lint: ## Run golangci-lint
