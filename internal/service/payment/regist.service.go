@@ -48,8 +48,8 @@ type ItemDetail struct {
 }
 
 type CreatePaymentRequest struct {
-	OrderID  string         `json:"order_id" binding:"required"`
-	Customer CustomerInfo   `json:"customer" binding:"required"`
+	OrderID  string         `json:"order_id"`
+	Customer CustomerInfo   `json:"customer"`
 	Items    []ItemDetail   `json:"items" binding:"required,min=1"`
 	Metadata map[string]any `json:"metadata"`
 }

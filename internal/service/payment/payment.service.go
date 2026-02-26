@@ -18,6 +18,19 @@ import (
 )
 
 func (s *Service) CreatePayment(req *CreatePaymentRequest) *types.Response {
+	// Generate OrderID if not provided
+	if req.OrderID == "" {
+		id, err := helper.GenerateID()
+		if err != nil {
+			return helper.ParseResponse(&types.Response{
+				Code:    http.StatusInternalServerError,
+				Message: "Failed to generate order ID",
+				Error:   err,
+			})
+		}
+		req.OrderID = fmt.Sprintf("ORDER-%s", id)
+	}
+
 	// Calculate gross amount from items
 	var grossAmount int64
 	var midtransItems []midtrans.ItemDetails
