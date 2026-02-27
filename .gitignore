@@ -34,3 +34,7 @@ Thumbs.db
 
 # Tmp
 tmp/
+
+# Go binaries
+api
+migrate
