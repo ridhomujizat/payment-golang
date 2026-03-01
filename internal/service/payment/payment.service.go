@@ -1,6 +1,7 @@
 package payment
 
 import (
+	"bytes"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
@@ -219,6 +220,10 @@ func (s *Service) MidtransCallback(payload map[string]any) *types.Response {
 
 	s.updateTransactionStatus(orderID, transactionStatusResp)
 
+	if transactionStatusResp.TransactionStatus == "settlement" || transactionStatusResp.TransactionStatus == "capture" {
+		go s.notifyWhatsApp(orderID)
+	}
+
 	logger.Info.Printf("Callback processed for order %s: status=%s", orderID, transactionStatusResp.TransactionStatus)
 
 	return helper.ParseResponse(&types.Response{
@@ -275,6 +280,38 @@ func (s *Service) updateTransactionStatus(orderID string, resp *coreapi.Transact
 	if err := s.rp.Payment.UpdateStatus(s.ctx, orderID, updates); err != nil {
 		logger.Error.Printf("Failed to update transaction status for order %s: %v", orderID, err)
 	}
+}
+
+func (s *Service) notifyWhatsApp(orderID string) {
+	url := "https://channel-middleware-3a-agentspace-dev.omnix.co.id/ai-unifam/middleware/whatsapp/order-status/fafd19dd-0d92-490f-89b5-ede179676065"
+
+	body := map[string]string{
+		"tenant_id":  "onx_unifarm",
+		"account_id": "6282198918484",
+		"idOrder":    orderID,
+		"status":     "PAID",
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		logger.Error.Printf("Failed to marshal WhatsApp notification body for order %s: %v", orderID, err)
+		return
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		logger.Error.Printf("Failed to send WhatsApp notification for order %s: %v", orderID, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		logger.Error.Printf("WhatsApp notification failed for order %s: status %d", orderID, resp.StatusCode)
+		return
+	}
+
+	logger.Info.Printf("WhatsApp notification sent for order %s", orderID)
 }
 
 func verifySignatureKey(orderID, statusCode, grossAmount, serverKey, signatureKey string) bool {
