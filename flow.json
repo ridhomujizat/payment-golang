@@ -1,0 +1,211 @@
+{
+    "version": "7.3",
+    "data_api_version": "3.0",
+    "routing_model": {
+        "ORDER_FORM": ["SUMMARY_ORDER"],
+        "SUMMARY_ORDER": []
+    },
+    "screens": [
+        {
+            "id": "ORDER_FORM",
+            "title": "Formulir Pemesanan",
+            "data": {
+                "items_text": {
+                    "type": "string",
+                    "__example__": "1x milkita permen susu mix\n1x Super Zuper Permen Asem"
+                },
+                "total_barang": {
+                    "type": "string",
+                    "__example__": "Rp 28.800"
+                },
+                "total_pengiriman": {
+                    "type": "string",
+                    "__example__": "Rp 10.000"
+                },
+                "total_biaya": {
+                    "type": "string",
+                    "__example__": "Rp 38.800"
+                }
+            },
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "TextInput",
+                        "name": "nama_penerima",
+                        "label": "Nama Penerima",
+                        "input-type": "text",
+                        "required": true
+                    },
+                    {
+                        "type": "TextInput",
+                        "name": "nomor_handphone",
+                        "label": "Nomor (+62)",
+                        "input-type": "phone",
+                        "required": true
+                    },
+                    {
+                        "type": "TextInput",
+                        "name": "alamat_lengkap",
+                        "label": "Alamat Lengkap",
+                        "input-type": "text",
+                        "required": true
+                    },
+                    {
+                        "type": "TextInput",
+                        "name": "provinsi",
+                        "label": "Provinsi",
+                        "input-type": "text",
+                        "required": true
+                    },
+                    {
+                        "type": "TextInput",
+                        "name": "kota_kecamatan",
+                        "label": "Kota / Kecamatan",
+                        "input-type": "text",
+                        "required": true
+                    },
+                    {
+                        "type": "TextInput",
+                        "name": "kode_pos",
+                        "label": "Kode Pos",
+                        "input-type": "text",
+                        "required": true
+                    },
+                    {
+                        "type": "Footer",
+                        "label": "Next",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "nama_penerima": "${form.nama_penerima}",
+                                "nomor_handphone": "${form.nomor_handphone}",
+                                "alamat_lengkap": "${form.alamat_lengkap}",
+                                "provinsi": "${form.provinsi}",
+                                "kota_kecamatan": "${form.kota_kecamatan}",
+                                "kode_pos": "${form.kode_pos}",
+                                "items_text": "${data.items_text}",
+                                "total_barang": "${data.total_barang}",
+                                "total_pengiriman": "${data.total_pengiriman}",
+                                "total_biaya": "${data.total_biaya}"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "SUMMARY_ORDER",
+            "title": "Summary Order",
+            "terminal": true,
+            "success": true,
+            "data": {
+                "nama_penerima": {
+                    "type": "string",
+                    "__example__": "Muh Silmi"
+                },
+                "nomor_handphone": {
+                    "type": "string",
+                    "__example__": "+62812-9992-9993"
+                },
+                "alamat_lengkap": {
+                    "type": "string",
+                    "__example__": "Jl rs fatmawati no 77-81"
+                },
+                "provinsi": {
+                    "type": "string",
+                    "__example__": "DKI Jakarta"
+                },
+                "kota_kecamatan": {
+                    "type": "string",
+                    "__example__": "Cipete, Jakarta Selatan"
+                },
+                "kode_pos": {
+                    "type": "string",
+                    "__example__": "125127"
+                },
+                "shipping_details": {
+                    "type": "string",
+                    "__example__": "Name : Muh Silmi\nPhone : +62812-9992-9993\nAddress : Jl rs fatmawati no 77-81\nCipete, Jakarta Selatan, DKI Jakarta\n125127"
+                },
+                "items_text": {
+                    "type": "string",
+                    "__example__": "1x milkita permen susu mix\n1x Super Zuper Permen Asem"
+                },
+                "total_barang": {
+                    "type": "string",
+                    "__example__": "Rp 28.800"
+                },
+                "total_pengiriman": {
+                    "type": "string",
+                    "__example__": "Rp 10.000"
+                },
+                "total_biaya": {
+                    "type": "string",
+                    "__example__": "Rp 38.800"
+                }
+            },
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "TextHeading",
+                        "text": "Shipping Details"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "${data.shipping_details}"
+                    },
+                    {
+                        "type": "TextHeading",
+                        "text": "Items"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "${data.items_text}"
+                    },
+                    {
+                        "type": "TextSubheading",
+                        "text": "Total Barang"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "${data.total_barang}"
+                    },
+                    {
+                        "type": "TextSubheading",
+                        "text": "Total Pengiriman"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "${data.total_pengiriman}"
+                    },
+                    {
+                        "type": "TextSubheading",
+                        "text": "Total Biaya"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "${data.total_biaya}"
+                    },
+                    {
+                        "type": "Footer",
+                        "label": "Submit",
+                        "on-click-action": {
+                            "name": "complete",
+                            "payload": {
+                                "nama_penerima": "${data.nama_penerima}",
+                                "nomor_handphone": "${data.nomor_handphone}",
+                                "alamat_lengkap": "${data.alamat_lengkap}",
+                                "provinsi": "${data.provinsi}",
+                                "kota_kecamatan": "${data.kota_kecamatan}",
+                                "kode_pos": "${data.kode_pos}",
+                                "total_biaya": "${data.total_biaya}"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

@@ -238,6 +238,12 @@ func (h *Handler) handleDataExchange(req *waflow.DecryptedRequest) waflow.FlowRe
 		return ""
 	}
 
+	shippingDetails := "Name : " + getData("nama_penerima") +
+		"\nPhone : " + getData("nomor_handphone") +
+		"\nAddress : " + getData("alamat_lengkap") +
+		"\n" + getData("kota_kecamatan") + ", " + getData("provinsi") +
+		"\n" + getData("kode_pos")
+
 	return waflow.FlowResponse{
 		Screen: "SUMMARY_ORDER",
 		Data: map[string]interface{}{
@@ -247,6 +253,7 @@ func (h *Handler) handleDataExchange(req *waflow.DecryptedRequest) waflow.FlowRe
 			"provinsi":         getData("provinsi"),
 			"kota_kecamatan":   getData("kota_kecamatan"),
 			"kode_pos":         getData("kode_pos"),
+			"shipping_details": shippingDetails,
 			"items_text":       getData("items_text"),
 			"total_barang":     getData("total_barang"),
 			"total_pengiriman": getData("total_pengiriman"),
