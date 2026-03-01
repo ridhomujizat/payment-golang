@@ -187,9 +187,10 @@ func (h *Handler) WAFlowEndpoint(c *gin.Context) {
 		}
 
 	case "INIT":
+		// Return ORDER_FORM screen with items data from flow message
 		response = waflow.FlowResponse{
-			Screen: "FIRST_SCREEN",
-			Data:   map[string]interface{}{},
+			Screen: "ORDER_FORM",
+			Data:   decrypted.Data,
 		}
 
 	case "data_exchange":
