@@ -46,6 +46,9 @@ func Setup(
 	baseURL string,
 	waPrivateKeyPath string,
 ) {
+	engine.RedirectTrailingSlash = false
+	engine.RedirectFixedPath = false
+
 	InitMiddleware(engine, publisher)
 
 	// Set swagger host dynamically from APP_BASE_URL
@@ -65,7 +68,7 @@ func Setup(
 	engine.LoadHTMLGlob("frontend/templates/*")
 
 	// Health check endpoint
-	engine.GET("/health", func(c *gin.Context) {
+	healthHandler := func(c *gin.Context) {
 		rabbitmqHealth := "unhealthy"
 		redisHealth := "unhealthy"
 		databaseHealth := "unhealthy"
@@ -95,7 +98,9 @@ func Setup(
 				},
 			},
 		})
-	})
+	}
+	engine.GET("/health", healthHandler)
+	engine.HEAD("/health", healthHandler)
 
 	e := engine.Group(BasePath())
 	InitRoutes(e, engine, ctx, wg, db, redisClient, rb, publisher, s3, ai, mt, baseURL, waPrivateKeyPath)
