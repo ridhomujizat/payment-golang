@@ -32,9 +32,8 @@ type DecryptedRequest struct {
 
 // FlowResponse represents the response before encryption
 type FlowResponse struct {
-	Version string                 `json:"version,omitempty"`
-	Screen  string                 `json:"screen,omitempty"`
-	Data    map[string]interface{} `json:"data,omitempty"`
+	Screen string                 `json:"screen,omitempty"`
+	Data   map[string]interface{} `json:"data,omitempty"`
 }
 
 // LoadPrivateKey loads an RSA private key from a PEM file
