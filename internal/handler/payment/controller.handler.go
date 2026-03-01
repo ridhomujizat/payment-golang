@@ -173,7 +173,7 @@ func (h *Handler) WAFlowEndpoint(c *gin.Context) {
 		return
 	}
 
-	logger.Info.Printf("WA Flow action=%s screen=%s", decrypted.Action, decrypted.Screen)
+	logger.Info.Printf("WA Flow action=%s screen=%s data=%v", decrypted.Action, decrypted.Screen, decrypted.Data)
 
 	// Process action
 	var response waflow.FlowResponse
