@@ -3,6 +3,7 @@ package payment
 import (
 	"context"
 	"crypto/rsa"
+	"encoding/json"
 	types "go-boilerplate/internal/common/type"
 	"go-boilerplate/internal/pkg/helper"
 	"go-boilerplate/internal/pkg/logger"
@@ -210,6 +211,10 @@ func (h *Handler) WAFlowEndpoint(c *gin.Context) {
 			},
 		}
 	}
+
+	// Log response before encrypting
+	respJSON, _ := json.Marshal(response)
+	logger.Info.Printf("WA Flow response: %s", string(respJSON))
 
 	// Encrypt the response
 	encrypted, err := waflow.EncryptResponse(aesKey, iv, response)
