@@ -190,8 +190,9 @@ func (h *Handler) WAFlowEndpoint(c *gin.Context) {
 	case "INIT":
 		// Return ORDER_FORM screen with items data from flow message
 		response = waflow.FlowResponse{
-			Screen: "ORDER_FORM",
-			Data:   decrypted.Data,
+			Version: "3.0",
+			Screen:  "ORDER_FORM",
+			Data:    decrypted.Data,
 		}
 
 	case "data_exchange":
@@ -199,8 +200,9 @@ func (h *Handler) WAFlowEndpoint(c *gin.Context) {
 
 	case "BACK":
 		response = waflow.FlowResponse{
-			Screen: decrypted.Screen,
-			Data:   decrypted.Data,
+			Version: "3.0",
+			Screen:  decrypted.Screen,
+			Data:    decrypted.Data,
 		}
 
 	default:
@@ -239,7 +241,8 @@ func (h *Handler) handleDataExchange(req *waflow.DecryptedRequest) waflow.FlowRe
 	}
 
 	return waflow.FlowResponse{
-		Screen: "SUMMARY_ORDER",
+		Version: "3.0",
+		Screen:  "SUMMARY_ORDER",
 		Data: map[string]interface{}{
 			"nama_penerima":    getData("nama_penerima"),
 			"nomor_handphone":  getData("nomor_handphone"),
