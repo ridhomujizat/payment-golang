@@ -2,16 +2,19 @@ package serverApp
 
 import (
 	"context"
+	"crypto/rsa"
 	"net/url"
 	"strings"
 
 	ai "go-boilerplate/internal/pkg/ai-connector"
 	database "go-boilerplate/internal/pkg/db"
+	"go-boilerplate/internal/pkg/logger"
 	"go-boilerplate/internal/pkg/middleware"
 	midtransPkg "go-boilerplate/internal/pkg/midtrans"
 	"go-boilerplate/internal/pkg/rabbitmq"
 	"go-boilerplate/internal/pkg/redis"
 	s3aws "go-boilerplate/internal/pkg/storage/s3"
+	"go-boilerplate/internal/pkg/waflow"
 	"go-boilerplate/internal/repository"
 	paymentRepo "go-boilerplate/internal/repository/payment"
 	"sync"
@@ -41,6 +44,7 @@ func Setup(
 	ai *ai.AiClient,
 	mt *midtransPkg.MidtransClient,
 	baseURL string,
+	waPrivateKeyPath string,
 ) {
 	InitMiddleware(engine, publisher)
 
@@ -94,7 +98,7 @@ func Setup(
 	})
 
 	e := engine.Group(BasePath())
-	InitRoutes(e, engine, ctx, wg, db, redisClient, rb, publisher, s3, ai, mt, baseURL)
+	InitRoutes(e, engine, ctx, wg, db, redisClient, rb, publisher, s3, ai, mt, baseURL, waPrivateKeyPath)
 }
 
 // BasePath returns the base API path
@@ -122,6 +126,7 @@ func InitRoutes(
 	ai *ai.AiClient,
 	mt *midtransPkg.MidtransClient,
 	baseURL string,
+	waPrivateKeyPath string,
 ) {
 
 	// setup repo
@@ -134,9 +139,21 @@ func InitRoutes(
 	XampleHandler := xampleHandler.NewHandler(ctx, rb, XampleService)
 	XampleHandler.NewRoutes(e)
 
+	// === Load WA Flows private key (optional) ===
+	var waPrivateKey *rsa.PrivateKey
+	if waPrivateKeyPath != "" {
+		var err error
+		waPrivateKey, err = waflow.LoadPrivateKey(waPrivateKeyPath)
+		if err != nil {
+			logger.Error.Printf("Failed to load WA Flows private key: %v", err)
+		} else {
+			logger.Info.Printf("WA Flows private key loaded from %s", waPrivateKeyPath)
+		}
+	}
+
 	// === Payment ===
 	PaymentService := paymentService.NewService(ctx, rp, mt, baseURL)
-	PaymentHandler := paymentHandler.NewHandler(ctx, PaymentService, mt, baseURL)
+	PaymentHandler := paymentHandler.NewHandler(ctx, PaymentService, mt, baseURL, waPrivateKey)
 	PaymentHandler.NewRoutes(e)
 	PaymentHandler.NewPageRoutes(engine)
 }

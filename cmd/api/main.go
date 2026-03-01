@@ -183,7 +183,7 @@ func setupServer(payload *config.SetupServerDto) {
 		panic(err)
 	}
 
-	serverApp.Setup(e, *ctx, wg, db, rds, rb, publisher, s3, ai, mt, env.AppBaseURL)
+	serverApp.Setup(e, *ctx, wg, db, rds, rb, publisher, s3, ai, mt, env.AppBaseURL, env.WAPrivateKeyPath)
 	if payload.Env.AppEnv != "development" {
 		serverApp.InitWorker(*ctx, rds, db, rb, publisher, s3)
 	}

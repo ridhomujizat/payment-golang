@@ -41,6 +41,9 @@ type Config struct {
 	// App Base URL (for payment redirect URLs)
 	AppBaseURL string `env:"APP_BASE_URL" envDefault:"http://localhost:8080"`
 
+	// WhatsApp Flows private key path
+	WAPrivateKeyPath string `env:"WA_PRIVATE_KEY_PATH" envDefault:""`
+
 	// AWS S3 Configuration (optional, uncomment if needed)
 	// AWSACCESSKEYID     string       `env:"AWS_ACCESS_KEY_ID" envDefault:""`
 	// AWSSECRETACCESSKEY string       `env:"AWS_SECRET_ACCESS_KEY" envDefault:""`

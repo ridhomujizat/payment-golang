@@ -2,9 +2,12 @@ package payment
 
 import (
 	"context"
+	"crypto/rsa"
 	types "go-boilerplate/internal/common/type"
 	"go-boilerplate/internal/pkg/helper"
+	"go-boilerplate/internal/pkg/logger"
 	midtransPkg "go-boilerplate/internal/pkg/midtrans"
+	"go-boilerplate/internal/pkg/waflow"
 	paymentService "go-boilerplate/internal/service/payment"
 	"net/http"
 
@@ -16,6 +19,7 @@ type Handler struct {
 	paymentService paymentService.IService
 	midtrans       *midtransPkg.MidtransClient
 	baseURL        string
+	waPrivateKey   *rsa.PrivateKey
 }
 
 type IHandler interface {
@@ -23,12 +27,13 @@ type IHandler interface {
 	NewPageRoutes(e *gin.Engine)
 }
 
-func NewHandler(ctx context.Context, paymentService paymentService.IService, midtrans *midtransPkg.MidtransClient, baseURL string) IHandler {
+func NewHandler(ctx context.Context, paymentService paymentService.IService, midtrans *midtransPkg.MidtransClient, baseURL string, waPrivateKey *rsa.PrivateKey) IHandler {
 	return &Handler{
 		ctx:            ctx,
 		paymentService: paymentService,
 		midtrans:       midtrans,
 		baseURL:        baseURL,
+		waPrivateKey:   waPrivateKey,
 	}
 }
 
@@ -136,42 +141,112 @@ func (h *Handler) MidtransCallback(c *gin.Context) {
 }
 
 // WAFlowEndpoint godoc
-// @Summary      WhatsApp Flow data exchange endpoint
-// @Description  Handles data_exchange action from WhatsApp Flow, forwards order form data to SUMMARY_ORDER screen
+// @Summary      WhatsApp Flow encrypted endpoint
+// @Description  Receives encrypted request from WhatsApp Flows, decrypts, processes action, and returns encrypted response
 // @Tags         WhatsApp Flow
 // @Accept       json
-// @Produce      json
-// @Param        request  body      WAFlowRequest  true  "WhatsApp Flow request"
-// @Success      200      {object}  WAFlowResponse
+// @Produce      plain
+// @Param        request  body      waflow.EncryptedRequest  true  "Encrypted WhatsApp Flow request"
+// @Success      200      {string}  string  "Base64 encrypted response"
 // @Failure      400      {object}  map[string]string
+// @Failure      500      {object}  map[string]string
 // @Router       /v1/payments/wa-flow-endpoint [post]
 func (h *Handler) WAFlowEndpoint(c *gin.Context) {
-	var req WAFlowRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if h.waPrivateKey == nil {
+		logger.Error.Printf("WhatsApp Flow private key not configured")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "endpoint not configured"})
+		return
+	}
+
+	var encReq waflow.EncryptedRequest
+	if err := c.ShouldBindJSON(&encReq); err != nil {
+		logger.Error.Printf("Failed to bind WA Flow request: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 		return
 	}
 
-	if req.Action == "data_exchange" {
-		c.JSON(http.StatusOK, WAFlowResponse{
-			Screen: "SUMMARY_ORDER",
-			Data: WAFlowOrderData{
-				NamaPenerima:   req.Data.NamaPenerima,
-				NomorHandphone: req.Data.NomorHandphone,
-				AlamatLengkap:  req.Data.AlamatLengkap,
-				Provinsi:       req.Data.Provinsi,
-				KotaKecamatan:  req.Data.KotaKecamatan,
-				KodePos:        req.Data.KodePos,
-				ItemsText:      req.Data.ItemsText,
-				TotalBarang:    req.Data.TotalBarang,
-				TotalPengiriman: req.Data.TotalPengiriman,
-				TotalBiaya:     req.Data.TotalBiaya,
-			},
-		})
+	// Decrypt the request
+	decrypted, aesKey, iv, err := waflow.DecryptRequest(h.waPrivateKey, encReq)
+	if err != nil {
+		logger.Error.Printf("Failed to decrypt WA Flow request: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "decryption failed"})
 		return
 	}
 
-	c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported action"})
+	logger.Info.Printf("WA Flow action=%s screen=%s", decrypted.Action, decrypted.Screen)
+
+	// Process action
+	var response waflow.FlowResponse
+
+	switch decrypted.Action {
+	case "ping":
+		response = waflow.FlowResponse{
+			Data: map[string]interface{}{
+				"status": "active",
+			},
+		}
+
+	case "INIT":
+		response = waflow.FlowResponse{
+			Screen: "FIRST_SCREEN",
+			Data:   map[string]interface{}{},
+		}
+
+	case "data_exchange":
+		response = h.handleDataExchange(decrypted)
+
+	case "BACK":
+		response = waflow.FlowResponse{
+			Screen: decrypted.Screen,
+			Data:   decrypted.Data,
+		}
+
+	default:
+		logger.Error.Printf("Unsupported WA Flow action: %s", decrypted.Action)
+		response = waflow.FlowResponse{
+			Data: map[string]interface{}{
+				"error": "unsupported action",
+			},
+		}
+	}
+
+	// Encrypt the response
+	encrypted, err := waflow.EncryptResponse(aesKey, iv, response)
+	if err != nil {
+		logger.Error.Printf("Failed to encrypt WA Flow response: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "encryption failed"})
+		return
+	}
+
+	c.Data(http.StatusOK, "text/plain", []byte(encrypted))
+}
+
+// handleDataExchange processes data_exchange action based on screen
+func (h *Handler) handleDataExchange(req *waflow.DecryptedRequest) waflow.FlowResponse {
+	getData := func(key string) string {
+		if v, ok := req.Data[key]; ok {
+			if s, ok := v.(string); ok {
+				return s
+			}
+		}
+		return ""
+	}
+
+	return waflow.FlowResponse{
+		Screen: "SUMMARY_ORDER",
+		Data: map[string]interface{}{
+			"nama_penerima":    getData("nama_penerima"),
+			"nomor_handphone":  getData("nomor_handphone"),
+			"alamat_lengkap":   getData("alamat_lengkap"),
+			"provinsi":         getData("provinsi"),
+			"kota_kecamatan":   getData("kota_kecamatan"),
+			"kode_pos":         getData("kode_pos"),
+			"items_text":       getData("items_text"),
+			"total_barang":     getData("total_barang"),
+			"total_pengiriman": getData("total_pengiriman"),
+			"total_biaya":      getData("total_biaya"),
+		},
+	}
 }
 
 // PaymentPage handles GET /pay/:token — serves the payment HTML page
